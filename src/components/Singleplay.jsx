@@ -62,7 +62,7 @@ class Singleplay extends Component {
         return result_class;
     }
 
-    eatApple(head) {
+    eatApple = (head) => {
 
         let { currentApple } = this.state;
 
@@ -75,16 +75,40 @@ class Singleplay extends Component {
         return false;
     }
 
-    isInTheField(head) {
-        // console.log(head.x, head.y);
-        if (head.x < 0 || head.x > 15  
+    isInTheField = (head) => {
+        if (head.x < 0 || head.x > 15
             || head.y < 0 || head.y > 15) {
             return false;
         }
         return true;
     }
 
-    moveSnake() {
+    spawnApple = () => {
+        let newApple = { x: 0, y: 0 }
+
+        newApple.x = Math.floor(Math.random() * MAP_SIZE);
+        newApple.y = Math.floor(Math.random() * MAP_SIZE);
+
+        return newApple;
+    }
+
+    gameOver = () => {
+        clearInterval(this.interval);
+        window.removeEventListener('keydown', () => { });
+        alert('Game Over!');
+    }
+
+    headOnTail = (head, tail) => {
+        for (let i = 0; i < tail.length; i++) {
+            debugger;
+            if (head.x == tail[i].x && head.y == tail[i].y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    moveSnake = () => {
         let { currentSnake, currentDirrection } = this.state;
 
         let [head] = currentSnake;
@@ -94,29 +118,19 @@ class Singleplay extends Component {
             x: head.x + currentDirrection.x,
             y: head.y + currentDirrection.y,
         };
-
-        if (!this.isInTheField(newHead)) {
-            clearInterval(this.interval);
-            window.removeEventListener('keydown', () => {});
-            alert('Game Over!');
+        
+        tail = this.eatApple(newHead) ? currentSnake.slice(0) : currentSnake.slice(0, -1);
+        
+        if (!this.isInTheField(newHead) || this.headOnTail(newHead, tail)) {
+            this.gameOver();
             return;
         }
-
-        tail = this.eatApple(newHead) ? currentSnake.slice(0) : currentSnake.slice(0, -1);
 
         this.setState({
             currentSnake: [newHead, ...tail]
         });
     }
 
-    spawnApple() {
-        let newApple = { x: 0, y: 0 }
-
-        newApple.x = Math.floor(Math.random() * MAP_SIZE);
-        newApple.y = Math.floor(Math.random() * MAP_SIZE);
-
-        return newApple;
-    }
 
     componentDidMount() {
         this.interval = setInterval(() => {
@@ -138,7 +152,7 @@ class Singleplay extends Component {
 
     componentWillUnmount() {
         clearInterval(this.interval);
-        window.removeEventListener('keydown', () => {});
+        window.removeEventListener('keydown', () => { });
     }
 
     render() {
