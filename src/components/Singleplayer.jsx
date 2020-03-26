@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import GameMenu from "./GameMenu";
 import { Link } from "react-router-dom";
 
-import '../css/singleplay.css'
+import '../css/singleplayer.css'
 
 const MAP_SIZE = 8;
 let MAP;

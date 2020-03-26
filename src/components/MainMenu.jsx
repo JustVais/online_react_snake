@@ -7,8 +7,8 @@ class Menu extends React.Component {
         return (
             <div className="container">
                 <GameMenu>
-                    <Link to="/singleplay" className="game-menu__button">Одиночная игра</Link>
-                    <Link to="/multyplay" className="game-menu__button">Мультиплеер</Link>
+                    <Link to="/singleplayer" className="game-menu__button">Одиночная игра</Link>
+                    <Link to="/multiplayer" className="game-menu__button">Мультиплеер</Link>
                 </GameMenu>
             </div>
         );
