@@ -4,7 +4,6 @@ import { BrowserRouter, Switch, Route } from "react-router-dom";
 import MainMenu from './components/MainMenu';
 import Singleplayer from './components/Singleplayer';
 import Multiplayer from './components/Multiplayer';
-// import GameMenu from "./components/GameMenu";
 
 import './css/index.css'
 
