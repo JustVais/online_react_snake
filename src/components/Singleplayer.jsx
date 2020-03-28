@@ -49,17 +49,11 @@ class Singleplay extends Component {
         let result_class = "";
 
         currentSnake.forEach(piece_of_snake => {
-
             if (piece_of_snake.x === x && piece_of_snake.y === y) {
-
                 result_class = "map__snake";
-
             } else if (currentApple.x === x && currentApple.y === y) {
-
                 result_class = "map__apple";
-
             }
-
         });
 
         return result_class;
@@ -126,9 +120,7 @@ class Singleplay extends Component {
 
     headOnTail = (head, tail) => {
         for (let i = 0; i < tail.length; i++) {
-            if (head.x === tail[i].x && head.y === tail[i].y) {
-                return true;
-            }
+            if (head.x === tail[i].x && head.y === tail[i].y) return true;
         }
         return false;
     }
@@ -184,7 +176,9 @@ class Singleplay extends Component {
 
     startGame = () => {
         this.makeNewMap();
+        
         let centerOfMap = Math.floor(MAP_SIZE / 2);
+
         this.setState({
             currentSnake: [
                 { x: centerOfMap, y: centerOfMap - 3 },

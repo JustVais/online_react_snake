@@ -5,11 +5,19 @@ var io = require('socket.io')(server);
 server.listen(3001);
 console.log('Server works on port 3001');
 
+const Direction = {
+    Top: { x: 0, y: -1 },
+    Bottom: { x: 0, y: 1 },
+    Left: { x: -1, y: 0 },
+    Right: { x: 1, y: 0 }
+};
+
 class Player {
     constructor(socketId, color, isReady) {
         this.socketId = socketId;
         this.logoColor = color;
         this.isReady = isReady;
+        this.direction = Direction.Top;
     }
 
     getSocketId() {
@@ -22,6 +30,7 @@ class Player {
 }
 
 const roomsList = {};
+const playersLimit = 2;
 
 generateRoomId = (len) => {
     let chrs = 'abdehkmnpswxzABDEFGHKMNPQRSTWXZ123456789';
@@ -62,7 +71,8 @@ createRoom = () => {
 
     roomsList[newRoomId] = {
         roomColors: colors,
-        players: []
+        players: [],
+        gameStarted: false
     };
 
     return newRoomId;
@@ -92,7 +102,7 @@ removePlayerFromRoom = (currentRoom, index) => {
 
 prepToAddToRoom = (socket) => {
     for (let roomId in roomsList) {
-        if (roomsList[roomId].players.length < 2) {
+        if (roomsList[roomId].players.length < 2 && !roomsList[roomId].gameStarted) {
             addPlayerToRoom(socket, roomId);
             return roomId;
         }
@@ -101,6 +111,42 @@ prepToAddToRoom = (socket) => {
     let roomId = createRoom();
     addPlayerToRoom(socket, roomId);
     return roomId;
+}
+
+checkReadyStatusInRooom = (currentRoomId) => {
+    let currentRoom = roomsList[currentRoomId];
+    let count = 0;
+    
+    
+    currentRoom.players.forEach((player) => {
+        if (player.isReady) count++;
+    });
+
+    
+    if (count === currentRoom.players.length && count === playersLimit) {
+        startGame(currentRoom, currentRoomId);
+    }
+}
+
+
+startGame = (currentRoom, currentRoomId) => {
+    io.to(currentRoomId).emit('startGame', { players: currentRoom.players });
+    
+    currentRoom.gameStarted = true;
+
+    let gameHandler = new Promise((resolve) => {
+        setInterval(() => {
+            if (currentRoom.players.length > 1) {
+                io.to(currentRoomId).emit('stepOfGame', currentRoom.players);
+            } else {
+                resolve();
+            }
+        }, 2500);
+    });
+
+    gameHandler.then(() => {
+        //ВОЗМОЖНО ТУТ НУЖНО СДЕЛАТЬ ОБРАБОТЧИК
+    });
 }
 
 io.on('connection', (socket) => {
@@ -112,7 +158,18 @@ io.on('connection', (socket) => {
         roomsList[currentRoomId].players.forEach(player => {
             if (player.getSocketId() === socket.id) {
                 player.changeReadyStatus();
+                checkReadyStatusInRooom(currentRoomId);
                 io.to(currentRoomId).emit('onChangeReadyStatus', player);
+            }
+        });
+    });
+
+    socket.on('changeDirection', (data) => {
+        let currentRoom = roomsList[currentRoomId];
+
+        currentRoom.players.forEach((player) => {
+            if (player.getSocketId() === socket.id) {
+                player.direction = Direction[data.direction];
             }
         });
     });
