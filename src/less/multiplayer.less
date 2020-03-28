@@ -1,31 +1,30 @@
 //out: ../css/, compress: true
 
-.waiting {
+.wait-menu {
     background-color: #32363E;
     display: grid;
     grid-template-rows: 60px 1fr 80px;
-    
-    &__wrapper-title {
-        padding: 30px;
-        border-bottom: 2px solid #20232A;
-        display: grid;
-        align-content: center;
-    }
+    min-width: 360px;
     
     &__title {
         font-family: Arial, Helvetica, sans-serif;
         color: #ECECEC;
+        display: grid;
+        justify-content: center;
+        align-content: center;
+        border-bottom: 2px solid #20232A;
         margin: 0;
     }
 
-    &__ready {
+    &__footer {
         display: grid;
         justify-content: center;
         align-content: center;
         border-top: 2px solid #20232A;
     }
 
-    &__ready-button {
+    &__footer-button {
+        border-top: 2px solid #20232A;
         border: 0;
         font-size: 20px;
         font-weight: bold;
@@ -54,16 +53,15 @@
 }
 
 .players-list {
-    display: grid;
-    row-gap: 30px;
     min-height: 200px;
     padding: 20px 0 20px 0;
+
     &__player {
         display: grid;
         grid-template-columns: 20px 1fr 70px;
         align-items: center;
         column-gap: 20px;
-        margin: 0 30px 0 30px;
+        margin: 0 30px 15px 30px;
         padding: 0 15px 0 15px;
         height: 40px;
         background-color: #696969;
@@ -71,9 +69,33 @@
     }
     
     &__logo {
-        background-color: red;
         width: 20px;
         height: 20px;
+
+        &--red {
+            background-color: red;
+        }
+        &--green {
+            background-color: green;
+        }
+        &--blue {
+            background-color: blue;
+        }
+        &--pink {
+            background-color: pink;
+        }
+        &--black {
+            background-color: black;
+        }
+        &--white {
+            background-color: white;
+        }
+        &--gray {
+            background-color: gray;
+        }
+        &--brown {
+            background-color: brown;
+        }
     }
     
     &__username {
