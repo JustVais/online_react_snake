@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import GameMenu from "./GameMenu";
 import { Link } from "react-router-dom";
 
+import Map from './Map';
+
 import '../css/singleplayer.css'
 
 const MAP_SIZE = 8;
@@ -60,7 +62,6 @@ class Singleplay extends Component {
     }
 
     eatApple = (head) => {
-
         let { currentApple } = this.state;
 
         if (head.x === currentApple.x && head.y === currentApple.y) {
@@ -176,7 +177,7 @@ class Singleplay extends Component {
 
     startGame = () => {
         this.makeNewMap();
-        
+
         let centerOfMap = Math.floor(MAP_SIZE / 2);
 
         this.setState({
@@ -212,19 +213,7 @@ class Singleplay extends Component {
     render() {
         return (
             <div className="container">
-                <div className="map">
-                    {
-                        MAP.map((row, y) =>
-                            <div key={y} className="map__row">
-                                {
-                                    row.map((cell, x) =>
-                                        <div key={x} className={`map__cell ${this.checkCell(x, y, cell)}`}></div>
-                                    )
-                                }
-                            </div>
-                        )
-                    }
-                </div>
+                <Map MAP={MAP} checkCell={this.checkCell}/>
                 {this.state.menuOpened &&
                     <GameMenu>
                         {this.state.gameOver ? (

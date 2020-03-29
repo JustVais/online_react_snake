@@ -18,6 +18,8 @@ class Player {
         this.logoColor = color;
         this.isReady = isReady;
         this.direction = Direction.Top;
+        this.currentSnake = [];
+        this.count = 0;
     }
 
     getSocketId() {
@@ -27,10 +29,15 @@ class Player {
     changeReadyStatus() {
         this.isReady = !this.isReady;
     }
+
+    clearTail() {
+        this.currentSnake = [];
+    }
 }
 
 const roomsList = {};
-const playersLimit = 2;
+const PLAYERS_LIMIT = 2;
+const MAP_SIZE = 8;
 
 generateRoomId = (len) => {
     let chrs = 'abdehkmnpswxzABDEFGHKMNPQRSTWXZ123456789';
@@ -72,7 +79,9 @@ createRoom = () => {
     roomsList[newRoomId] = {
         roomColors: colors,
         players: [],
-        gameStarted: false
+        losedPlayers: [],
+        gameStarted: false,
+        currentApple: {}
     };
 
     return newRoomId;
@@ -93,7 +102,7 @@ addPlayerToRoom = (socket, roomId) => {
     roomsList[roomId].players.push(newPlayer);
     socket.join(roomId);
     socket.broadcast.to(roomId).emit('onAddPlayerToRoom', newPlayer);
-    socket.emit('onGetAllUsers', roomsList[roomId].players);
+    socket.emit('onGetAllUsers', { players: roomsList[roomId].players, socketId: socket.id });
 }
 
 removePlayerFromRoom = (currentRoom, index) => {
@@ -113,39 +122,128 @@ prepToAddToRoom = (socket) => {
     return roomId;
 }
 
-checkReadyStatusInRooom = (currentRoomId) => {
+checkReadyStatusInRoom = (currentRoomId) => {
     let currentRoom = roomsList[currentRoomId];
     let count = 0;
-    
-    
+
+
     currentRoom.players.forEach((player) => {
         if (player.isReady) count++;
     });
 
-    
-    if (count === currentRoom.players.length && count === playersLimit) {
+
+    if (count === currentRoom.players.length && count === PLAYERS_LIMIT) {
         startGame(currentRoom, currentRoomId);
     }
 }
 
+eatApple = (head, currentRoom) => {
+
+    let { currentApple } = currentRoom;
+
+    if (head.x === currentApple.x && head.y === currentApple.y) {
+        spawnApple(currentRoom);
+        return true;
+    }
+    return false;
+}
+
+isInTheField = (head) => {
+    if (head.x < 0 || head.x > MAP_SIZE - 1
+        || head.y < 0 || head.y > MAP_SIZE - 1) {
+        return false;
+    }
+    return true;
+}
+
+headOnTail = (newHead, currentRoom) => {
+    let result = false;
+    currentRoom.players.forEach(player => {
+        player.currentSnake.forEach(snakeCell => {
+            if (snakeCell.x === newHead.x && snakeCell.y === newHead.y) {
+                result = true;
+            }
+        });
+    });
+    return result;
+}
+
+gameOverForPlayer = (player, currentRoom, index) => {
+    player.clearTail();
+
+    currentRoom.losedPlayers = [...currentRoom.losedPlayers, player];
+    
+    setTimeout(() => {
+        currentRoom.players.splice(index, 1);
+    });
+}
+
+moveSnake = (currentRoom, currentRoomId) => {
+    currentRoom.players.forEach((player, index) => {
+        let currentSnake = player.currentSnake;
+        let currentDirrection = player.direction;
+
+        let [head] = currentSnake;
+        let tail = [];
+        
+        let newHead = {
+            x: head.x + currentDirrection.x,
+            y: head.y + currentDirrection.y,
+        };
+        
+        if (!isInTheField(newHead) || headOnTail(newHead, currentRoom)) {
+            gameOverForPlayer(player, currentRoom, index);
+        } else {
+            if (eatApple(newHead, currentRoom)) {
+                player.count++;
+                tail = currentSnake.slice(0);
+            } else {
+                tail = currentSnake.slice(0, -1);
+            }
+            player.currentSnake = [newHead, ...tail];
+        }
+    });
+
+    io.to(currentRoomId).emit('stepOfGame', { players: currentRoom.players, currentApple: currentRoom.currentApple });
+}
+
+spawnApple = (currentRoom) => {
+    let newApple = { x: 0, y: 0 }
+
+    newApple.x = Math.floor(Math.random() * MAP_SIZE);
+    newApple.y = Math.floor(Math.random() * MAP_SIZE);
+
+    currentRoom.currentApple = newApple;
+}
 
 startGame = (currentRoom, currentRoomId) => {
-    io.to(currentRoomId).emit('startGame', { players: currentRoom.players });
-    
+    let centerOfMap = Math.floor(MAP_SIZE / PLAYERS_LIMIT);
+
     currentRoom.gameStarted = true;
+
+    spawnApple(currentRoom);
+
+    currentRoom.players.forEach((player, index) => {
+        player.currentSnake = [
+            { x: centerOfMap * index, y: centerOfMap - 1 },
+            { x: centerOfMap * index, y: centerOfMap }
+        ]
+    });
+
+    io.to(currentRoomId).emit('startGame', { players: currentRoom.players, currentApple: currentRoom.currentApple });
 
     let gameHandler = new Promise((resolve) => {
         setInterval(() => {
-            if (currentRoom.players.length > 1) {
-                io.to(currentRoomId).emit('stepOfGame', currentRoom.players);
+            if (currentRoom.players.length > 0) {
+                moveSnake(currentRoom, currentRoomId);
             } else {
                 resolve();
             }
-        }, 2500);
+        }, 250);
     });
 
     gameHandler.then(() => {
-        //ВОЗМОЖНО ТУТ НУЖНО СДЕЛАТЬ ОБРАБОТЧИК
+        io.to(currentRoomId).emit('onEndGame', {losedPlayers: currentRoom.losedPlayers});
     });
 }
 
@@ -158,7 +256,7 @@ io.on('connection', (socket) => {
         roomsList[currentRoomId].players.forEach(player => {
             if (player.getSocketId() === socket.id) {
                 player.changeReadyStatus();
-                checkReadyStatusInRooom(currentRoomId);
+                checkReadyStatusInRoom(currentRoomId);
                 io.to(currentRoomId).emit('onChangeReadyStatus', player);
             }
         });

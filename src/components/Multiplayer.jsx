@@ -1,18 +1,14 @@
 import React, { Component } from 'react';
 import io from 'socket.io-client';
-
-import '../css/multiplayer.css'
+import '../css/multiplayer.css';
+import Map from './Map';
 
 import WaitingPlayer from './WaitingPlayer';
+import { Link } from 'react-router-dom';
+import GameOverPlayer from "./GameOverPlayer";
 
-const socket = io.connect("localhost:3001");
-
-const Direction = {
-    Top: { x: 0, y: -1 },
-    Bottom: { x: 0, y: 1 },
-    Left: { x: -1, y: 0 },
-    Right: { x: 1, y: 0 }
-};
+let socket;
+let MAP;
 
 class Multiplayer extends Component {
 
@@ -20,9 +16,14 @@ class Multiplayer extends Component {
         super();
         this.state = {
             players: [],
+            losedPlayers: [],
             localIsReady: true,
-            gameStarted: false
+            gameStarted: false,
+            mySocketId: "",
+            currentApple: {},
+            gameIsOver: false,
         };
+        socket = io.connect("localhost:3001");
     }
 
     componentDidMount() {
@@ -32,9 +33,10 @@ class Multiplayer extends Component {
             });
         });
 
-        socket.on('onGetAllUsers', (players) => {
+        socket.on('onGetAllUsers', (data) => {
             this.setState({
-                players: players
+                players: data.players,
+                mySocketId: data.socketId
             });
         });
 
@@ -63,15 +65,34 @@ class Multiplayer extends Component {
 
         socket.on('startGame', (data) => {
             window.addEventListener('keydown', this.listenDirectionChanging);
-
+            this.makeNewMap();
             this.setState({
                 gameStarted: true,
-                players: data.players
+                players: data.players,
+                currentApple: data.currentApple
             });
         });
 
         socket.on('stepOfGame', (data) => {
-            
+            this.setState({
+                players: data.players,
+                currentApple: data.currentApple
+            });
+        });
+
+        socket.on('onEndGame', (data) => {
+            this.setState({
+                players: [],
+                localIsReady: true,
+                gameStarted: false,
+                mySocketId: "",
+                currentApple: {},
+                gameIsOver: true,
+                losedPlayers: data.losedPlayers
+            });
+
+            socket.close();
+            window.removeEventListener('keydown', this.listenDirectionChanging);
         });
     }
 
@@ -84,40 +105,88 @@ class Multiplayer extends Component {
 
     listenDirectionChanging = (event) => {
         if (event.code === 'KeyW') {
-            socket.emit('changeDirection', {direction: "Top"});
+            socket.emit('changeDirection', { direction: "Top" });
         } else if (event.code === 'KeyS') {
-            socket.emit('changeDirection', {direction: "Bottom"});
+            socket.emit('changeDirection', { direction: "Bottom" });
         } else if (event.code === 'KeyA') {
-            socket.emit('changeDirection', {direction: "Left"});
+            socket.emit('changeDirection', { direction: "Left" });
         } else if (event.code === 'KeyD') {
-            socket.emit('changeDirection', {direction: "Right"});
+            socket.emit('changeDirection', { direction: "Right" });
         }
+    }
+
+    makeNewMap = () => {
+        MAP = [];
+        for (let i = 0; i < 8; i++) {
+            MAP.push([...new Array(8)]);
+        }
+    }
+
+    checkCell = (x, y) => {
+        let { players, currentApple } = this.state;
+        let result_class = "";
+
+        players.forEach(player => {
+            player.currentSnake.forEach(snakeCell => {
+                if (snakeCell.x === x && snakeCell.y === y) {
+                    result_class = 'map__snake--' + player.logoColor;
+                } else if (currentApple.x === x && currentApple.y === y) {
+                    result_class = 'map__apple';
+                }
+            });
+        });
+
+        return result_class;
+    }
+
+    componentWillUnmount() {
+        this.setState({
+            gameIsOver: false
+        });
     }
 
     render() {
         return (
             <div className='container'>
                 {!this.state.gameStarted ? (
-                    <div className="wait-menu">
-                        <h1 className="wait-menu__title">Ожидание игроков</h1>
-                        <div className="players-list">
-                            {
-                                this.state.players.map(player =>
-                                    <WaitingPlayer key={player.logoColor} logoColor={player.logoColor} isReady={player.isReady} />
-                                )
-                            }
+                    this.state.gameIsOver ? (
+                        <div className="game-over-menu">
+                            <h1 className="game-over-menu__title">Статистика</h1>
+                            <div className="game-over-menu__list">
+                                {
+                                    this.state.losedPlayers.map(player =>
+                                        <GameOverPlayer key={player.logoColor} logoColor={player.logoColor} count={player.count} />
+                                    )
+                                }
+                            </div>
+                            <div className="game-over-menu__footer">
+                                <Link to="/" className="game-over-menu__footer-button">
+                                    Выйти в меню
+                                </Link>
+                            </div>
                         </div>
-                        <div className="wait-menu__footer">
-                            <button
-                                className={`wait-menu__footer-button
-                                       wait-menu__footer-button--${this.state.localIsReady ? 'ready' : 'not-ready'}`}
-                                onClick={this.changeMyStatus}
-                            >
-                            </button>
-                        </div>
-                    </div>
+                    ) : (
+                            <div className="wait-menu">
+                                <h1 className="wait-menu__title">Ожидание игроков</h1>
+                                <div className="players-list">
+                                    {
+                                        this.state.players.map(player =>
+                                            <WaitingPlayer key={player.logoColor} logoColor={player.logoColor} isReady={player.isReady} />
+                                        )
+                                    }
+                                </div>
+                                <div className="wait-menu__footer">
+                                    <button
+                                        className={`wait-menu__footer-button
+                                                wait-menu__footer-button--${this.state.localIsReady ? 'ready' : 'not-ready'}`}
+                                        onClick={this.changeMyStatus}
+                                    >
+                                    </button>
+                                </div>
+                            </div >
+                        )
                 ) : (
-                        <div></div>
+                        <Map MAP={MAP} checkCell={this.checkCell} />
                     )
                 }
             </div>

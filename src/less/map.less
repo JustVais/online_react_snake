@@ -1,0 +1,51 @@
+//out: ../css/, compress: true
+
+@base-url: "http://localhost:3000";
+
+.map {
+    border: 5px solid #6D6D6D;
+
+    &__row {
+        height: 16px;
+    }
+    
+    &__cell {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+    }
+
+    &__snake {
+        background-color: green;
+
+        &--red {
+            background-color: red;
+        }
+        &--green {
+            background-color: green;
+        }
+        &--blue {
+            background-color: blue;
+        }
+        &--pink {
+            background-color: pink;
+        }
+        &--black {
+            background-color: black;
+        }
+        &--white {
+            background-color: white;
+        }
+        &--gray {
+            background-color: gray;
+        }
+        &--brown {
+            background-color: brown;
+        }
+    }
+
+    &__apple {
+        // background-color: red;
+        background-image: url("@{base-url}/apple.svg");
+    }
+}
