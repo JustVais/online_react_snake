@@ -91,9 +91,13 @@ class Multiplayer extends Component {
                 losedPlayers: data.losedPlayers
             });
 
-            socket.close();
-            window.removeEventListener('keydown', this.listenDirectionChanging);
+            this.endGame();
         });
+    }
+
+    endGame = () => {
+        socket.close();
+        window.removeEventListener('keydown', this.listenDirectionChanging);
     }
 
     changeMyStatus = () => {

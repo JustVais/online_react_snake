@@ -168,14 +168,9 @@ headOnTail = (newHead, currentRoom) => {
     return result;
 }
 
-gameOverForPlayer = (player, currentRoom, index) => {
-    player.clearTail();
-
+gameOverForPlayer = async (player, currentRoom, index) => {
     currentRoom.losedPlayers = [...currentRoom.losedPlayers, player];
-    
-    setTimeout(() => {
-        currentRoom.players.splice(index, 1);
-    });
+    currentRoom.players.splice(index, 1);
 }
 
 moveSnake = (currentRoom, currentRoomId) => {
@@ -190,7 +185,7 @@ moveSnake = (currentRoom, currentRoomId) => {
             x: head.x + currentDirrection.x,
             y: head.y + currentDirrection.y,
         };
-        
+
         if (!isInTheField(newHead) || headOnTail(newHead, currentRoom)) {
             gameOverForPlayer(player, currentRoom, index);
         } else {
@@ -243,7 +238,7 @@ startGame = (currentRoom, currentRoomId) => {
     });
 
     gameHandler.then(() => {
-        io.to(currentRoomId).emit('onEndGame', {losedPlayers: currentRoom.losedPlayers});
+        io.to(currentRoomId).emit('onEndGame', { losedPlayers: currentRoom.losedPlayers });
     });
 }
 
