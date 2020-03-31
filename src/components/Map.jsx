@@ -10,7 +10,7 @@ function Map(props) {
                     <div key={y} className="map__row">
                         {
                             row.map((cell, x) =>
-                                <div key={x} className={`map__cell ${props.checkCell(x, y, cell)}`}></div>
+                                <div key={x} className={`map__cell ${props.checkCell(x, y)}`}></div>
                             )
                         }
                     </div>

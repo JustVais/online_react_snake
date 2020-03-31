@@ -11,11 +11,33 @@ const QUANTITY_OF_STABLE_WALLS = 50;
 let MAP;
 
 const Direction = {
-    Top: { x: 0, y: -1 },
-    Bottom: { x: 0, y: 1 },
-    Left: { x: -1, y: 0 },
-    Right: { x: 1, y: 0 }
+    Top: { x: 0, y: -1, str: "top" },
+    Bottom: { x: 0, y: 1, str: "bottom" },
+    Left: { x: -1, y: 0, str: "left" },
+    Right: { x: 1, y: 0, str: "right" }
 };
+
+const DirectionOfSnakeCell = {
+    top: "top",
+    bottom: "bottom",
+    left: "left",
+    right: "right",
+    left_bottom: "left-bottom",
+    left_top: "left-top",
+    right_bottom: "right-bottom",
+    right_top: "right-top",
+    bottom_left: "bottom-left",
+    bottom_right: "bottom-right",
+    top_left: "top-left",
+    top_right: "top-right"
+};
+
+class MapCell {
+    constructor() {
+        this.item = 0;
+        this.snakeDirection = "";
+    }
+}
 
 class Singleplay extends Component {
 
@@ -23,6 +45,7 @@ class Singleplay extends Component {
         super();
 
         this.makeNewMap(true);
+
         this.state = {
             currentSnake: [],
             currentApple: { x: -1, y: -1 },
@@ -37,7 +60,11 @@ class Singleplay extends Component {
         MAP = [];
 
         for (let i = 0; i < MAP_SIZE; i++) {
-            MAP.push([...new Array(MAP_SIZE).fill(0)]);
+            let newRow = [];
+            for (let j = 0; j < MAP_SIZE; j++) {
+                newRow.push(new MapCell());
+            }
+            MAP.push(newRow);
         }
 
         if (!isFirst) {
@@ -47,7 +74,8 @@ class Singleplay extends Component {
             }
 
             snake.forEach((cell) => {
-                MAP[cell.x][cell.y] = 1;
+                MAP[cell.x][cell.y].item = 1;
+                MAP[cell.x][cell.y].directionOfCell = cell.snakeDirection;
             });
 
             for (let i = 1; i <= QUANTITY_OF_STABLE_WALLS; i++) {
@@ -57,7 +85,7 @@ class Singleplay extends Component {
                 }
 
                 if (this.isInTheField(coords) && !this.isInTheZeroZone(coords, zeroZone)) {
-                    MAP[coords.x][coords.y] = -1;
+                    MAP[coords.x][coords.y].item = -1;
 
                     this.spawnIslandsAround(coords, zeroZone);
                 }
@@ -83,7 +111,7 @@ class Singleplay extends Component {
                 };
 
                 if (!this.isInTheZeroZone(newPoint, zeroZone) && this.isInTheField(newPoint)) {
-                    MAP[newPoint.x][newPoint.y] = -1;
+                    MAP[newPoint.x][newPoint.y].item = -1;
                 }
             }
         }
@@ -92,12 +120,12 @@ class Singleplay extends Component {
     checkCell = (x, y) => {
         let result_class = "map__";
 
-        switch (MAP[x][y]) {
+        switch (MAP[x][y].item) {
             case -1:
                 result_class += "wall";
                 break;
             case 1:
-                result_class += "snake";
+                result_class += `snake--${MAP[x][y].directionOfCell}`;
                 break;
             case 2:
                 result_class += "apple";
@@ -142,8 +170,8 @@ class Singleplay extends Component {
             y: Math.floor(Math.random() * MAP_SIZE)
         }
 
-        if (MAP[newApple.x][newApple.y] === 0) {
-            MAP[newApple.x][newApple.y] = 2;
+        if (MAP[newApple.x][newApple.y].item === 0) {
+            MAP[newApple.x][newApple.y].item = 2;
 
             this.setState({
                 currentApple: newApple // ВОЗМОЖНО ЭТО СКОРО БУДЕТ НЕ НУЖНО
@@ -176,10 +204,22 @@ class Singleplay extends Component {
     }
 
     headOnWall = (head) => {
-        if (MAP[head.x][head.y] === -1) {
+        if (MAP[head.x][head.y].item === -1) {
             return true;
         }
         return false;
+    }
+
+    changeDirectionOfSnakeCell = (currentDirectOfCell, oldDirectOfCell) => {
+        let finalDirection;
+
+        if (currentDirectOfCell === oldDirectOfCell) {
+            finalDirection = oldDirectOfCell;
+        } else {
+            finalDirection = `${currentDirectOfCell}-${oldDirectOfCell}`;
+        }
+
+        return finalDirection;
     }
 
     moveSnake = () => {
@@ -191,6 +231,7 @@ class Singleplay extends Component {
         let newHead = {
             x: head.x + currentDirrection.x,
             y: head.y + currentDirrection.y,
+            directionOfCell: currentDirrection.str
         };
 
         tail = this.eatApple(newHead) ? currentSnake.slice(0) : currentSnake.slice(0, -1);
@@ -200,10 +241,16 @@ class Singleplay extends Component {
             return;
         }
 
+
+        head.directionOfCell = this.changeDirectionOfSnakeCell(newHead.directionOfCell, head.directionOfCell);
+
+        MAP[newHead.x][newHead.y].directionOfCell = newHead.directionOfCell;
+        MAP[head.x][head.y].directionOfCell = head.directionOfCell;
+
         let lastCellOfSnake = currentSnake[currentSnake.length - 1]
 
-        MAP[lastCellOfSnake.x][lastCellOfSnake.y] = 0;
-        MAP[newHead.x][newHead.y] = 1;
+        MAP[lastCellOfSnake.x][lastCellOfSnake.y].item = 0;
+        MAP[newHead.x][newHead.y].item = 1;
 
         this.setState({
             currentSnake: [newHead, ...tail]
@@ -240,10 +287,10 @@ class Singleplay extends Component {
         let centerOfMap = Math.floor(MAP_SIZE / 2);
 
         let newSnake = [
-            { x: centerOfMap, y: centerOfMap - 3 },
-            { x: centerOfMap, y: centerOfMap - 2 },
-            { x: centerOfMap, y: centerOfMap - 1 },
-            { x: centerOfMap, y: centerOfMap },
+            { x: centerOfMap, y: centerOfMap - 3, directionOfCell: DirectionOfSnakeCell.top },
+            { x: centerOfMap, y: centerOfMap - 2, directionOfCell: DirectionOfSnakeCell.top },
+            { x: centerOfMap, y: centerOfMap - 1, directionOfCell: DirectionOfSnakeCell.top },
+            { x: centerOfMap, y: centerOfMap, directionOfCell: DirectionOfSnakeCell.top },
         ];
 
         this.setState({
