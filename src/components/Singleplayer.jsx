@@ -6,7 +6,8 @@ import Map from './Map';
 
 import '../css/singleplayer.css'
 
-const MAP_SIZE = 8;
+const MAP_SIZE = 32;
+const QUANTITY_OF_WALLS = 20;
 let MAP;
 
 const Direction = {
@@ -21,14 +22,9 @@ class Singleplay extends Component {
     constructor() {
         super();
 
-        this.makeNewMap();
+        this.makeNewMap(true);
         this.state = {
-            currentSnake: [
-                { x: 8, y: 5 },
-                { x: 8, y: 6 },
-                { x: 8, y: 7 },
-                { x: 8, y: 8 },
-            ],
+            currentSnake: [],
             currentApple: { x: -1, y: -1 },
             currentDirrection: Direction.Left,
             menuOpened: false,
@@ -36,14 +32,60 @@ class Singleplay extends Component {
         };
     }
 
-    makeNewMap = () => {
+    makeNewMap = (isFirst, snake) => {
+
         MAP = [];
 
         for (let i = 0; i < MAP_SIZE; i++) {
             MAP.push([...new Array(MAP_SIZE).fill(0)]);
         }
+
+        if (!isFirst) {
+            let zeroZone = {
+                forX: { from: snake[0].x - 3, to: snake[0].x + 3 },
+                forY: { from: snake[0].y - 4, to: snake[snake.length - 1].x + 1 }
+            }
+
+            snake.forEach((cell) => {
+                MAP[cell.x][cell.y] = 1;
+            });
+
+            for (let i = 1; i <= QUANTITY_OF_WALLS; i++) {
+                let coords = {
+                    x: Math.floor(Math.random() * MAP_SIZE),
+                    y: Math.floor(Math.random() * MAP_SIZE)
+                }
+
+                if (this.isInTheField(coords) && !this.isInTheZeroZone(coords, zeroZone)) {
+                    MAP[coords.x][coords.y] = -1;
+
+                    this.spawnIslandsAround(coords, zeroZone);
+                }
+            }
+        }
     }
 
+    spawnIslandsAround = ({ x, y }, zeroZone) => {
+
+        let pointsAround = [
+            { x: -1, y: 0 },
+            { x: 1, y: 0 },
+            { x: 0, y: -1 },
+            { x: 0, y: 1 }
+        ];
+        for (let i = 0; i < 3; i++) {
+            let isSpawn = Math.floor(Math.random() * 2) === 1 ? true : false;
+
+            let newPoint = { 
+                x: x + pointsAround[i].x,
+                y: y + pointsAround[i].y
+            };
+            
+            if (isSpawn && !this.isInTheZeroZone(newPoint, zeroZone) && this.isInTheField(newPoint)) {
+                MAP[newPoint.x][newPoint.y] = -1;
+            }
+        }
+    }
 
     checkCell = (x, y) => {
 
@@ -56,6 +98,8 @@ class Singleplay extends Component {
                 result_class = "map__snake";
             } else if (currentApple.x === x && currentApple.y === y) {
                 result_class = "map__apple";
+            } else if (MAP[x][y] === -1) {
+                result_class = "map__wall";
             }
         });
 
@@ -72,9 +116,17 @@ class Singleplay extends Component {
         return false;
     }
 
-    isInTheField = (head) => {
-        if (head.x < 0 || head.x > MAP_SIZE - 1
-            || head.y < 0 || head.y > MAP_SIZE - 1) {
+    isInTheZeroZone = ({ x, y }, zeroZone) => {
+        if (x < zeroZone.forX.from || x > zeroZone.forX.to
+            || y < zeroZone.forY.from || y > zeroZone.forY.to) {
+            return false;
+        }
+        return true;
+    }
+
+    isInTheField = ({ x, y }) => {
+        if (x < 0 || x > MAP_SIZE - 1
+            || y < 0 || y > MAP_SIZE - 1) {
             return false;
         }
         return true;
@@ -177,21 +229,23 @@ class Singleplay extends Component {
     }
 
     startGame = () => {
-        this.makeNewMap();
-
         let centerOfMap = Math.floor(MAP_SIZE / 2);
 
+        let newSnake = [
+            { x: centerOfMap, y: centerOfMap - 3 },
+            { x: centerOfMap, y: centerOfMap - 2 },
+            { x: centerOfMap, y: centerOfMap - 1 },
+            { x: centerOfMap, y: centerOfMap },
+        ];
+
         this.setState({
-            currentSnake: [
-                { x: centerOfMap, y: centerOfMap - 3 },
-                { x: centerOfMap, y: centerOfMap - 2 },
-                { x: centerOfMap, y: centerOfMap - 1 },
-                { x: centerOfMap, y: centerOfMap },
-            ],
+            currentSnake: newSnake,
             currentDirrection: Direction.Left,
             menuOpened: false,
             gameOver: false
         });
+
+        this.makeNewMap(false, newSnake);
 
         this.spawnApple();
 
@@ -214,7 +268,7 @@ class Singleplay extends Component {
     render() {
         return (
             <div className="container">
-                <Map MAP={MAP} checkCell={this.checkCell}/>
+                <Map MAP={MAP} checkCell={this.checkCell} />
                 {this.state.menuOpened &&
                     <GameMenu>
                         {this.state.gameOver ? (
