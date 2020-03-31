@@ -175,6 +175,13 @@ class Singleplay extends Component {
         return false;
     }
 
+    headOnWall = (head) => {
+        if (MAP[head.x][head.y] === -1) {
+            return true;
+        }
+        return false;
+    }
+
     moveSnake = () => {
         let { currentSnake, currentDirrection } = this.state;
 
@@ -188,7 +195,7 @@ class Singleplay extends Component {
 
         tail = this.eatApple(newHead) ? currentSnake.slice(0) : currentSnake.slice(0, -1);
 
-        if (!this.isInTheField(newHead) || this.headOnTail(newHead, tail)) {
+        if (!this.isInTheField(newHead) || this.headOnTail(newHead, tail) || this.headOnWall(newHead)) {
             this.gameOver();
             return;
         }
