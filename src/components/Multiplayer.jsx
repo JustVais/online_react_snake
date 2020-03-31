@@ -9,6 +9,7 @@ import GameOverPlayer from "./GameOverPlayer";
 
 let socket;
 let MAP;
+let MAP_SIZE = 32;
 
 class Multiplayer extends Component {
 
@@ -19,7 +20,6 @@ class Multiplayer extends Component {
             losedPlayers: [],
             localIsReady: true,
             gameStarted: false,
-            mySocketId: "",
             currentApple: {},
             gameIsOver: false,
         };
@@ -27,6 +27,8 @@ class Multiplayer extends Component {
     }
 
     componentDidMount() {
+        socket.emit('addToRoom');
+
         socket.on('onAddPlayerToRoom', (player) => {
             this.setState({
                 players: [...this.state.players, player]
@@ -35,8 +37,7 @@ class Multiplayer extends Component {
 
         socket.on('onGetAllUsers', (data) => {
             this.setState({
-                players: data.players,
-                mySocketId: data.socketId
+                players: data.players
             });
         });
 
@@ -85,7 +86,6 @@ class Multiplayer extends Component {
                 players: [],
                 localIsReady: true,
                 gameStarted: false,
-                mySocketId: "",
                 currentApple: {},
                 gameIsOver: true,
                 losedPlayers: data.losedPlayers
@@ -121,8 +121,8 @@ class Multiplayer extends Component {
 
     makeNewMap = () => {
         MAP = [];
-        for (let i = 0; i < 8; i++) {
-            MAP.push([...new Array(8)]);
+        for (let i = 0; i < MAP_SIZE; i++) {
+            MAP.push([...new Array(MAP_SIZE)]);
         }
     }
 

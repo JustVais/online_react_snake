@@ -38,8 +38,9 @@ class Singleplay extends Component {
 
     makeNewMap = () => {
         MAP = [];
+
         for (let i = 0; i < MAP_SIZE; i++) {
-            MAP.push([...new Array(MAP_SIZE)]);
+            MAP.push([...new Array(MAP_SIZE).fill(0)]);
         }
     }
 

@@ -37,7 +37,7 @@ class Player {
 
 const roomsList = {};
 const PLAYERS_LIMIT = 2;
-const MAP_SIZE = 8;
+const MAP_SIZE = 32;
 
 generateRoomId = (len) => {
     let chrs = 'abdehkmnpswxzABDEFGHKMNPQRSTWXZ123456789';
@@ -102,7 +102,7 @@ addPlayerToRoom = (socket, roomId) => {
     roomsList[roomId].players.push(newPlayer);
     socket.join(roomId);
     socket.broadcast.to(roomId).emit('onAddPlayerToRoom', newPlayer);
-    socket.emit('onGetAllUsers', { players: roomsList[roomId].players, socketId: socket.id });
+    socket.emit('onGetAllUsers', { players: roomsList[roomId].players });
 }
 
 removePlayerFromRoom = (currentRoom, index) => {
@@ -212,7 +212,8 @@ spawnApple = (currentRoom) => {
 }
 
 startGame = (currentRoom, currentRoomId) => {
-    let centerOfMap = Math.floor(MAP_SIZE / PLAYERS_LIMIT);
+    let equallyDividedPieces = Math.floor(MAP_SIZE / (PLAYERS_LIMIT+1));
+    let centerOfMap = Math.floor(MAP_SIZE / 2);
 
     currentRoom.gameStarted = true;
 
@@ -220,8 +221,8 @@ startGame = (currentRoom, currentRoomId) => {
 
     currentRoom.players.forEach((player, index) => {
         player.currentSnake = [
-            { x: centerOfMap * index, y: centerOfMap - 1 },
-            { x: centerOfMap * index, y: centerOfMap }
+            { x: equallyDividedPieces * (index+1), y: centerOfMap - 1 },
+            { x: equallyDividedPieces * (index+1), y: centerOfMap }
         ]
     });
 
@@ -244,8 +245,11 @@ startGame = (currentRoom, currentRoomId) => {
 
 io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} connected!`);
+    let currentRoomId;
 
-    let currentRoomId = prepToAddToRoom(socket);
+    socket.on('addToRoom', () => {
+        currentRoomId = prepToAddToRoom(socket);
+    });
 
     socket.on('changeMyReadyStatus', () => {
         roomsList[currentRoomId].players.forEach(player => {
