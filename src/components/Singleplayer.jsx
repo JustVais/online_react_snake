@@ -7,7 +7,7 @@ import Map from './Map';
 import '../css/singleplayer.css'
 
 const MAP_SIZE = 32;
-const QUANTITY_OF_WALLS = 20;
+const QUANTITY_OF_STABLE_WALLS = 50;
 let MAP;
 
 const Direction = {
@@ -50,7 +50,7 @@ class Singleplay extends Component {
                 MAP[cell.x][cell.y] = 1;
             });
 
-            for (let i = 1; i <= QUANTITY_OF_WALLS; i++) {
+            for (let i = 1; i <= QUANTITY_OF_STABLE_WALLS; i++) {
                 let coords = {
                     x: Math.floor(Math.random() * MAP_SIZE),
                     y: Math.floor(Math.random() * MAP_SIZE)
@@ -76,32 +76,36 @@ class Singleplay extends Component {
         for (let i = 0; i < 3; i++) {
             let isSpawn = Math.floor(Math.random() * 2) === 1 ? true : false;
 
-            let newPoint = { 
-                x: x + pointsAround[i].x,
-                y: y + pointsAround[i].y
-            };
-            
-            if (isSpawn && !this.isInTheZeroZone(newPoint, zeroZone) && this.isInTheField(newPoint)) {
-                MAP[newPoint.x][newPoint.y] = -1;
+            if (isSpawn) {
+                let newPoint = {
+                    x: x + pointsAround[i].x,
+                    y: y + pointsAround[i].y
+                };
+
+                if (!this.isInTheZeroZone(newPoint, zeroZone) && this.isInTheField(newPoint)) {
+                    MAP[newPoint.x][newPoint.y] = -1;
+                }
             }
         }
     }
 
     checkCell = (x, y) => {
+        let result_class = "map__";
 
-        let { currentSnake, currentApple } = this.state;
-
-        let result_class = "";
-
-        currentSnake.forEach(piece_of_snake => {
-            if (piece_of_snake.x === x && piece_of_snake.y === y) {
-                result_class = "map__snake";
-            } else if (currentApple.x === x && currentApple.y === y) {
-                result_class = "map__apple";
-            } else if (MAP[x][y] === -1) {
-                result_class = "map__wall";
-            }
-        });
+        switch (MAP[x][y]) {
+            case -1:
+                result_class += "wall";
+                break;
+            case 1:
+                result_class += "snake";
+                break;
+            case 2:
+                result_class += "apple";
+                break;
+            default:
+                result_class = "";
+                break;
+        }
 
         return result_class;
     }
@@ -133,27 +137,19 @@ class Singleplay extends Component {
     }
 
     spawnApple = () => {
-        let { currentSnake } = this.state;
-
-        let newApple = { x: 0, y: 0 }
-
-        newApple.x = Math.floor(Math.random() * MAP_SIZE);
-        newApple.y = Math.floor(Math.random() * MAP_SIZE);
-
-        let flag = true;
-
-        for (let i = 0; i < currentSnake.length; i++) {
-            if (newApple.x === currentSnake[i].x && newApple.y === currentSnake[i].y) {
-                this.spawnApple();
-                flag = false;
-                break;
-            }
+        let newApple = {
+            x: Math.floor(Math.random() * MAP_SIZE),
+            y: Math.floor(Math.random() * MAP_SIZE)
         }
 
-        if (flag === true) {
+        if (MAP[newApple.x][newApple.y] === 0) {
+            MAP[newApple.x][newApple.y] = 2;
+
             this.setState({
-                currentApple: newApple
+                currentApple: newApple // ВОЗМОЖНО ЭТО СКОРО БУДЕТ НЕ НУЖНО
             });
+        } else {
+            this.spawnApple();
         }
     }
 
@@ -196,6 +192,11 @@ class Singleplay extends Component {
             this.gameOver();
             return;
         }
+
+        let lastCellOfSnake = currentSnake[currentSnake.length - 1]
+
+        MAP[lastCellOfSnake.x][lastCellOfSnake.y] = 0;
+        MAP[newHead.x][newHead.y] = 1;
 
         this.setState({
             currentSnake: [newHead, ...tail]
