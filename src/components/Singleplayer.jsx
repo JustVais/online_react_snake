@@ -34,8 +34,9 @@ const DirectionOfSnakeCell = {
 
 class MapCell {
     constructor() {
-        this.item = 0;
+        this.type = 0;
         this.snakeDirection = "";
+        this.directionOfCell = "";
     }
 }
 
@@ -44,52 +45,52 @@ class Singleplay extends Component {
     constructor() {
         super();
 
-        this.makeNewMap(true);
-
         this.state = {
             currentSnake: [],
             currentApple: { x: -1, y: -1 },
             currentDirrection: Direction.Left,
             menuOpened: false,
-            gameOver: false
+            gameOver: false,
+            isLoading: true
         };
     }
 
-    makeNewMap = (isFirst, snake) => {
+    makeNewMap = (snake) => {
 
         MAP = [];
 
-        for (let i = 0; i < MAP_SIZE; i++) {
+        for (let y = 0; y < MAP_SIZE; y++) {
             let newRow = [];
-            for (let j = 0; j < MAP_SIZE; j++) {
+
+            for (let x = 0; x < MAP_SIZE; x++) {
                 newRow.push(new MapCell());
             }
+
             MAP.push(newRow);
         }
 
-        if (!isFirst) {
-            let zeroZone = {
-                forX: { from: snake[0].x - 3, to: snake[0].x + 3 },
-                forY: { from: snake[0].y - 4, to: snake[snake.length - 1].x + 1 }
+        let zeroZone = {
+            forX: { from: snake[0].x - 3, to: snake[0].x + 3 },
+            forY: { from: snake[0].y - 4, to: snake[snake.length - 1].x + 1 }
+        }
+
+        snake.forEach((snakeCell) => {
+            MAP[snakeCell.x][snakeCell.y].type = 1;
+            MAP[snakeCell.x][snakeCell.y].directionOfCell = DirectionOfSnakeCell.top;
+        });
+
+        for (let i = 1; i <= QUANTITY_OF_STABLE_WALLS; i++) {
+            let coords = {
+                x: Math.floor(Math.random() * MAP_SIZE),
+                y: Math.floor(Math.random() * MAP_SIZE)
             }
 
-            snake.forEach((cell) => {
-                MAP[cell.x][cell.y].item = 1;
-                MAP[cell.x][cell.y].directionOfCell = cell.snakeDirection;
-            });
+            if (this.isInTheField(coords) && !this.isInTheZeroZone(coords, zeroZone)) {
+                MAP[coords.x][coords.y].type = -1;
 
-            for (let i = 1; i <= QUANTITY_OF_STABLE_WALLS; i++) {
-                let coords = {
-                    x: Math.floor(Math.random() * MAP_SIZE),
-                    y: Math.floor(Math.random() * MAP_SIZE)
-                }
-
-                if (this.isInTheField(coords) && !this.isInTheZeroZone(coords, zeroZone)) {
-                    MAP[coords.x][coords.y].item = -1;
-
-                    this.spawnIslandsAround(coords, zeroZone);
-                }
+                this.spawnIslandsAround(coords, zeroZone);
             }
+
         }
     }
 
@@ -111,31 +112,32 @@ class Singleplay extends Component {
                 };
 
                 if (!this.isInTheZeroZone(newPoint, zeroZone) && this.isInTheField(newPoint)) {
-                    MAP[newPoint.x][newPoint.y].item = -1;
+                    MAP[newPoint.x][newPoint.y].type = -1;
                 }
             }
         }
     }
 
     checkCell = (x, y) => {
-        let result_class = "map__";
-
-        switch (MAP[x][y].item) {
+        let classesArray = [];
+        
+        switch (MAP[x][y].type) {
             case -1:
-                result_class += "wall";
+                classesArray.push("map__wall");
                 break;
             case 1:
-                result_class += `snake--${MAP[x][y].directionOfCell}`;
+                classesArray.push("map__snake");
+                classesArray.push(`map__snake--${MAP[x][y].directionOfCell}`);
                 break;
             case 2:
-                result_class += "apple";
+                classesArray.push("map__apple");
                 break;
             default:
-                result_class = "";
+                classesArray = [];
                 break;
         }
 
-        return result_class;
+        return classesArray.join(" ");
     }
 
     eatApple = (head) => {
@@ -170,8 +172,8 @@ class Singleplay extends Component {
             y: Math.floor(Math.random() * MAP_SIZE)
         }
 
-        if (MAP[newApple.x][newApple.y].item === 0) {
-            MAP[newApple.x][newApple.y].item = 2;
+        if (MAP[newApple.x][newApple.y].type === 0) {
+            MAP[newApple.x][newApple.y].type = 2;
 
             this.setState({
                 currentApple: newApple // ВОЗМОЖНО ЭТО СКОРО БУДЕТ НЕ НУЖНО
@@ -204,7 +206,7 @@ class Singleplay extends Component {
     }
 
     headOnWall = (head) => {
-        if (MAP[head.x][head.y].item === -1) {
+        if (MAP[head.x][head.y].type === -1) {
             return true;
         }
         return false;
@@ -234,6 +236,7 @@ class Singleplay extends Component {
             directionOfCell: currentDirrection.str
         };
 
+
         tail = this.eatApple(newHead) ? currentSnake.slice(0) : currentSnake.slice(0, -1);
 
         if (!this.isInTheField(newHead) || this.headOnTail(newHead, tail) || this.headOnWall(newHead)) {
@@ -249,8 +252,8 @@ class Singleplay extends Component {
 
         let lastCellOfSnake = currentSnake[currentSnake.length - 1]
 
-        MAP[lastCellOfSnake.x][lastCellOfSnake.y].item = 0;
-        MAP[newHead.x][newHead.y].item = 1;
+        MAP[lastCellOfSnake.x][lastCellOfSnake.y].type = 0;
+        MAP[newHead.x][newHead.y].type = 1;
 
         this.setState({
             currentSnake: [newHead, ...tail]
@@ -293,20 +296,22 @@ class Singleplay extends Component {
             { x: centerOfMap, y: centerOfMap, directionOfCell: DirectionOfSnakeCell.top },
         ];
 
-        this.setState({
-            currentSnake: newSnake,
-            currentDirrection: Direction.Left,
-            menuOpened: false,
-            gameOver: false
-        });
+        this.makeNewMap(newSnake);
 
-        this.makeNewMap(false, newSnake);
 
         this.spawnApple();
 
         this.interval = setInterval(() => {
             this.moveSnake();
         }, 250);
+
+        this.setState({
+            currentSnake: newSnake,
+            currentDirrection: Direction.Left,
+            menuOpened: false,
+            gameOver: false,
+            isLoading: false
+        });
 
         window.addEventListener('keydown', this.listenDirectionChanging);
         window.addEventListener('keydown', this.listenMenuOpening);
@@ -322,6 +327,7 @@ class Singleplay extends Component {
 
     render() {
         return (
+            !this.state.isLoading &&
             <div className="container">
                 <Map MAP={MAP} checkCell={this.checkCell} />
                 {this.state.menuOpened &&
@@ -341,6 +347,7 @@ class Singleplay extends Component {
                     </GameMenu>
                 }
             </div>
+
         );
     }
 }
