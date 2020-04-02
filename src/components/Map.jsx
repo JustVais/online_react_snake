@@ -6,7 +6,7 @@ function Map(props) {
     return (
         <div className="map">
             {
-                props.MAP.map((row, y) =>
+                props.allCells.map((row, y) =>
                     <div key={y} className="map__row">
                         {
                             row.map((cell, x) =>

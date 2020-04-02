@@ -8,7 +8,6 @@ import '../css/singleplayer.css'
 
 const MAP_SIZE = 32;
 const QUANTITY_OF_STABLE_WALLS = 50;
-let MAP;
 
 const Direction = {
     Top: { x: 0, y: -1, str: "top" },
@@ -32,6 +31,46 @@ const DirectionOfSnakeCell = {
     top_right: "top-right"
 };
 
+class MapLogic {
+    constructor() {
+        this.stack = [];
+        this.fillingMap();
+    }
+
+    fillingMap = () => {
+        for (let y = 0; y < MAP_SIZE; y++) {
+            let newRow = [];
+
+            for (let x = 0; x < MAP_SIZE; x++) newRow.push(new MapCell());
+
+            this.stack.push(newRow);
+        }
+    }
+
+    SetTypeToCell = (x, y, type) => this.stack[x][y].type = type;
+
+    GetCellType = (x, y) => this.stack[x][y].type;
+
+    SetSnakeDirection = (x, y, snakeDirection) => this.stack[x][y].snakeDirection = snakeDirection;
+
+    GetSnakeDirection = (x, y) => this.stack[x][y].snakeDirection;
+
+    SetDirectionOfCell = (x, y, directionOfCell) => this.stack[x][y].directionOfCell = directionOfCell;
+
+    GetDirectionOfCell = (x, y) => this.stack[x][y].directionOfCell;
+
+    SetSnakeHeadAndTipToMap = (head, newHead, currentSnake) => {
+        let lastCellOfSnake = currentSnake[currentSnake.length - 1];
+
+        this.stack[newHead.x][newHead.y].directionOfCell = newHead.directionOfCell;
+        this.stack[head.x][head.y].directionOfCell = head.directionOfCell;
+        this.stack[lastCellOfSnake.x][lastCellOfSnake.y].type = 0;
+        this.stack[newHead.x][newHead.y].type = 1;
+    }
+
+    GetAllCells = () => this.stack;
+}
+
 class MapCell {
     constructor() {
         this.type = 0;
@@ -39,6 +78,8 @@ class MapCell {
         this.directionOfCell = "";
     }
 }
+
+let MAP;
 
 class Singleplay extends Component {
 
@@ -55,30 +96,35 @@ class Singleplay extends Component {
         };
     }
 
-    makeNewMap = (snake) => {
+    // fillingMap = () => {
+    //     MAP = [];
 
-        MAP = [];
+    //     for (let y = 0; y < MAP_SIZE; y++) {
+    //         let newRow = [];
 
-        for (let y = 0; y < MAP_SIZE; y++) {
-            let newRow = [];
+    //         for (let x = 0; x < MAP_SIZE; x++) {
+    //             newRow.push(new MapCell());
+    //         }
 
-            for (let x = 0; x < MAP_SIZE; x++) {
-                newRow.push(new MapCell());
-            }
+    //         MAP.push(newRow);
+    //     }
+    // }
 
-            MAP.push(newRow);
-        }
+    addingSnakeToMap = (snake) => {
+        snake.forEach(({ x, y }) => {
+            MAP.SetTypeToCell(x, y, 1);
+            MAP.SetDirectionOfCell(x, y, DirectionOfSnakeCell.top);
+        });
+    }
 
-        let zeroZone = {
+    getZeroZone = (snake) => {
+        return {
             forX: { from: snake[0].x - 3, to: snake[0].x + 3 },
             forY: { from: snake[0].y - 4, to: snake[snake.length - 1].x + 1 }
-        }
+        };
+    }
 
-        snake.forEach((snakeCell) => {
-            MAP[snakeCell.x][snakeCell.y].type = 1;
-            MAP[snakeCell.x][snakeCell.y].directionOfCell = DirectionOfSnakeCell.top;
-        });
-
+    makingWalls = (zeroZone) => {
         for (let i = 1; i <= QUANTITY_OF_STABLE_WALLS; i++) {
             let coords = {
                 x: Math.floor(Math.random() * MAP_SIZE),
@@ -86,33 +132,30 @@ class Singleplay extends Component {
             }
 
             if (this.isInTheField(coords) && !this.isInTheZeroZone(coords, zeroZone)) {
-                MAP[coords.x][coords.y].type = -1;
-
+                MAP.SetTypeToCell(coords.x, coords.y, -1);
                 this.spawnIslandsAround(coords, zeroZone);
             }
-
         }
     }
 
+    makeNewMap = (snake) => {
+        MAP = new MapLogic();
+        this.makingWalls(this.getZeroZone(snake));
+        this.addingSnakeToMap(snake);
+    }
+
     spawnIslandsAround = ({ x, y }, zeroZone) => {
+        for (let direction in Direction) {
+            let willItBeSpawned = Math.floor(Math.random() * 2) === 1 ? true : false;
 
-        let pointsAround = [
-            { x: -1, y: 0 },
-            { x: 1, y: 0 },
-            { x: 0, y: -1 },
-            { x: 0, y: 1 }
-        ];
-        for (let i = 0; i < 3; i++) {
-            let isSpawn = Math.floor(Math.random() * 2) === 1 ? true : false;
-
-            if (isSpawn) {
-                let newPoint = {
-                    x: x + pointsAround[i].x,
-                    y: y + pointsAround[i].y
+            if (willItBeSpawned) {
+                let islandPiece = {
+                    x: x + direction.x,
+                    y: y + direction.y
                 };
 
-                if (!this.isInTheZeroZone(newPoint, zeroZone) && this.isInTheField(newPoint)) {
-                    MAP[newPoint.x][newPoint.y].type = -1;
+                if (!this.isInTheZeroZone(islandPiece, zeroZone) && this.isInTheField(islandPiece)) {
+                    MAP.SetTypeToCell(islandPiece.x, islandPiece.y, -1);
                 }
             }
         }
@@ -120,14 +163,14 @@ class Singleplay extends Component {
 
     checkCell = (x, y) => {
         let classesArray = [];
-        
-        switch (MAP[x][y].type) {
+
+        switch (MAP.GetCellType(x, y)) {
             case -1:
                 classesArray.push("map__wall");
                 break;
             case 1:
                 classesArray.push("map__snake");
-                classesArray.push(`map__snake--${MAP[x][y].directionOfCell}`);
+                classesArray.push(`map__snake--${MAP.GetDirectionOfCell(x, y)}`);
                 break;
             case 2:
                 classesArray.push("map__apple");
@@ -172,11 +215,11 @@ class Singleplay extends Component {
             y: Math.floor(Math.random() * MAP_SIZE)
         }
 
-        if (MAP[newApple.x][newApple.y].type === 0) {
-            MAP[newApple.x][newApple.y].type = 2;
+        if (MAP.GetCellType(newApple.x, newApple.y) === 0) {
+            MAP.SetTypeToCell(newApple.x, newApple.y, 2);
 
             this.setState({
-                currentApple: newApple // ВОЗМОЖНО ЭТО СКОРО БУДЕТ НЕ НУЖНО
+                currentApple: newApple
             });
         } else {
             this.spawnApple();
@@ -186,42 +229,31 @@ class Singleplay extends Component {
     dataСleaning = () => {
         clearInterval(this.interval);
         window.removeEventListener('keydown', this.listenDirectionChanging);
-        window.removeEventListener('keydown', this.listenMenuOpening);
     }
 
     gameOver = () => {
         this.dataСleaning();
         this.setState({
-            menuOpened: true, // gameMenu on
-            gameOver: true // gameOver Buttons on
+            menuOpened: true,
+            gameOver: true
         });
         console.log('Game Over!');
     }
 
-    headOnTail = (head, tail) => {
-        for (let i = 0; i < tail.length; i++) {
-            if (head.x === tail[i].x && head.y === tail[i].y) return true;
-        }
-        return false;
-    }
+    isHeadOnTail = (head) => MAP.GetCellType(head.x, head.y) === 1 ? true : false;
 
-    headOnWall = (head) => {
-        if (MAP[head.x][head.y].type === -1) {
+    isHeadOnWall = (head) => MAP.GetCellType(head.x, head.y) === -1 ? true : false;
+
+    changeDirectionOfSnakeCell = (currentDirectOfCell, oldDirectOfCell) => (
+        currentDirectOfCell === oldDirectOfCell ? oldDirectOfCell : `${currentDirectOfCell}-${oldDirectOfCell}`
+    );
+
+    shouldGameEnd = (head) => {
+        if (!this.isInTheField(head) || this.isHeadOnTail(head) || this.isHeadOnWall(head)) {
+            this.gameOver();
             return true;
         }
         return false;
-    }
-
-    changeDirectionOfSnakeCell = (currentDirectOfCell, oldDirectOfCell) => {
-        let finalDirection;
-
-        if (currentDirectOfCell === oldDirectOfCell) {
-            finalDirection = oldDirectOfCell;
-        } else {
-            finalDirection = `${currentDirectOfCell}-${oldDirectOfCell}`;
-        }
-
-        return finalDirection;
     }
 
     moveSnake = () => {
@@ -236,24 +268,13 @@ class Singleplay extends Component {
             directionOfCell: currentDirrection.str
         };
 
+        if (this.shouldGameEnd(newHead)) return;
 
         tail = this.eatApple(newHead) ? currentSnake.slice(0) : currentSnake.slice(0, -1);
 
-        if (!this.isInTheField(newHead) || this.headOnTail(newHead, tail) || this.headOnWall(newHead)) {
-            this.gameOver();
-            return;
-        }
-
-
         head.directionOfCell = this.changeDirectionOfSnakeCell(newHead.directionOfCell, head.directionOfCell);
 
-        MAP[newHead.x][newHead.y].directionOfCell = newHead.directionOfCell;
-        MAP[head.x][head.y].directionOfCell = head.directionOfCell;
-
-        let lastCellOfSnake = currentSnake[currentSnake.length - 1]
-
-        MAP[lastCellOfSnake.x][lastCellOfSnake.y].type = 0;
-        MAP[newHead.x][newHead.y].type = 1;
+        MAP.SetSnakeHeadAndTipToMap(head, newHead, currentSnake);
 
         this.setState({
             currentSnake: [newHead, ...tail]
@@ -261,29 +282,22 @@ class Singleplay extends Component {
     }
 
     listenDirectionChanging = (event) => {
-        let newDirection = this.state.currentDirrection;
-
-        if (event.code === 'KeyW') {
-            newDirection = Direction.Top;
-        } else if (event.code === 'KeyS') {
-            newDirection = Direction.Bottom;
-        } else if (event.code === 'KeyA') {
-            newDirection = Direction.Left;
-        } else if (event.code === 'KeyD') {
-            newDirection = Direction.Right;
+        switch (event.code) {
+            case 'KeyW':
+                this.setState({ currentDirrection: Direction.Top });
+                break;
+            case 'KeyS':
+                this.setState({ currentDirrection: Direction.Bottom });
+                break;
+            case 'KeyA':
+                this.setState({ currentDirrection: Direction.Left });
+                break;
+            case 'KeyD':
+                this.setState({ currentDirrection: Direction.Right });
+                break;
+            default: break;
         }
 
-        this.setState({
-            currentDirrection: newDirection
-        });
-    }
-
-    listenMenuOpening = (event) => {
-        if (event.code === 'Escape') {
-            this.setState({
-                menuOpened: !this.state.menuOpened
-            });
-        }
     }
 
     startGame = () => {
@@ -298,12 +312,7 @@ class Singleplay extends Component {
 
         this.makeNewMap(newSnake);
 
-
         this.spawnApple();
-
-        this.interval = setInterval(() => {
-            this.moveSnake();
-        }, 250);
 
         this.setState({
             currentSnake: newSnake,
@@ -313,8 +322,10 @@ class Singleplay extends Component {
             isLoading: false
         });
 
+        this.interval = setInterval(this.moveSnake, 250);
+
+
         window.addEventListener('keydown', this.listenDirectionChanging);
-        window.addEventListener('keydown', this.listenMenuOpening);
     }
 
     componentDidMount() {
@@ -329,21 +340,12 @@ class Singleplay extends Component {
         return (
             !this.state.isLoading &&
             <div className="container">
-                <Map MAP={MAP} checkCell={this.checkCell} />
+                <Map allCells={MAP.GetAllCells()} checkCell={this.checkCell} />
                 {this.state.menuOpened &&
                     <GameMenu>
-                        {this.state.gameOver ? (
-                            <>
-                                <h1 className="game-menu__title">Game Over</h1>
-                                <button onClick={this.startGame} className="game-menu__button">Играть ещё</button>
-                                <Link to="/" className="game-menu__button">Выйти в меню</Link>
-                            </>
-                        ) : (
-                                <>
-                                    <button className="game-menu__button">Продолжить</button>
-                                    <button className="game-menu__button">Выйти</button>
-                                </>
-                            )}
+                        <h1 className="game-menu__title">Game Over</h1>
+                        <button onClick={this.startGame} className="game-menu__button">Играть ещё</button>
+                        <Link to="/" className="game-menu__button">Выйти в меню</Link>
                     </GameMenu>
                 }
             </div>
