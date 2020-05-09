@@ -1,4 +1,4 @@
 # Table of contents
 
-* [React Snake](README.md)
+* [Initial page](README.md)
 
