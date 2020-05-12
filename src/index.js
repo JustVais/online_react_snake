@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter, Switch, Route } from "react-router-dom";
-import MainMenu from './components/MainMenu';
-import Singleplayer from './components/Singleplayer';
-import Multiplayer from './components/Multiplayer';
+import MainMenu from './screens/MainMenu';
+import Singleplayer from './screens/Singleplayer';
+import Multiplayer from './screens/Multiplayer';
 
 import './css/index.css'
 

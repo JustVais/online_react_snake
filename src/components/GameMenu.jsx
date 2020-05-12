@@ -1,16 +1,14 @@
-import React, { Component } from 'react';
+import React from 'react';
 import '../css/gameMenu.css';
 
-class GameMenu extends Component {
-    render() {
-        return (
-            <div className="game-menu">
-                <div className="game-menu__wrapper">
-                    {this.props.children}
-                </div>
+const GameMenu = ({children}) => {
+    return (
+        <div className="game-menu">
+            <div className="game-menu__wrapper">
+                {children}
             </div>
-        );
-    }
+        </div>
+    );
 }
 
 export default GameMenu;
