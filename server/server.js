@@ -10,12 +10,16 @@ const WAITING_FOR_PLAYERS = "WAITING_FOR_PLAYERS";
 const IN_GAME = "IN_GAME";
 
 const MAX_PLAYERS_IN_ROOM = 2;
+const SNAKE_SIZE = 4;
+const MAP_SIZE = 32;
 
 class Player {
     constructor(socket) {
         this.isReady = false;
         this.color;
         this.socket = socket;
+        this.snake = [];
+        this.direction = "left";
     }
 }
 
@@ -24,6 +28,7 @@ class Room {
         this.id = this.generateRoomId();
         this.status = WAITING_FOR_PLAYERS;
         this.gameStarted = false;
+        this.changedDirections = {};
         this.playersList = {};
         this.playersCounter = 0;
         this.colors = [
@@ -89,7 +94,9 @@ class Room {
             newPlayersList[keys[i]] = {
                 isReady: player.isReady,
                 color: player.color,
-                id: player.socket.id
+                id: player.socket.id,
+                snake: player.snake,
+                direction: player.direction
             };
         }
 
@@ -97,7 +104,7 @@ class Room {
     }
 
     changePlayerReadyStatus = (socketId, status) => {
-        
+
         this.playersList[socketId].isReady = status;
 
         if (this.gameStarted == true) return;
@@ -110,7 +117,7 @@ class Room {
 
         let playersKeys = Object.keys(this.playersList);
 
-        for(let i = 0; i < playersKeys.length; i++) {
+        for (let i = 0; i < playersKeys.length; i++) {
             if (this.playersList[playersKeys[i]].isReady) {
                 readyPlayersCounter++;
             } else {
@@ -120,14 +127,41 @@ class Room {
 
         if (readyPlayersCounter === MAX_PLAYERS_IN_ROOM) {
             this.gameStarted = true;
-            io.to(this.id).emit('game start');
+            this.generateSnakes();
+            io.to(this.id).emit('game start', { playersList: this.getPlayersList()});
+            this.startGameProcess();
         }
     }
 
-    game = () => {
+    changeSnakeDirection = (socketId, direction) => {
+        this.changedDirections = {
+            ...this.changedDirections,
+            [socketId]: direction
+        };
+
+        this.playersList[socketId].direction = direction;
+    }
+
+    generateSnakes = () => {
+        let indent = Math.floor(MAP_SIZE / (MAX_PLAYERS_IN_ROOM + 1));
+        
+        let playersKeys = Object.keys(this.playersList);
+        
+        for (let i = 1; i <= playersKeys.length; i++) {
+            let newSnake = [];
+
+            for (let l = 0; l < SNAKE_SIZE; l++)
+                newSnake.push({ x: indent*i, y: indent + l });
+            
+            this.playersList[playersKeys[i-1]].snake = newSnake;
+        }
+    }
+
+    startGameProcess = () => {
         new Promise((resolve, reject) => {
             setInterval(() => {
-                
+                io.to(this.id).emit('move snakes', {changedDirections: this.changedDirections});
+                this.changedDirections = {};
             }, 1000);
         });
     }
@@ -183,20 +217,28 @@ io.on('connection', (socket) => {
 
         socket.emit('get all players', { playersList: myRoom.getPlayersList() });
 
-        socket.broadcast.to(myRoom.id).emit('add new player', {newPlayer: {
-            isReady: player.isReady,
-            color: player.color,
-            id: player.socket.id
-        }});
+        socket.broadcast.to(myRoom.id).emit('add new player', {
+            newPlayer: {
+                isReady: player.isReady,
+                color: player.color,
+                id: player.socket.id,
+                snake: player.snake,
+                direction: player.direction
+            }
+        });
     });
 
     socket.on('change my ready status', (data) => {
         myRoom.changePlayerReadyStatus(socket.id, data.status);
 
         io.to(myRoom.id).emit('change player status', {
-            playerId: socket.id, 
+            playerId: socket.id,
             status: data.status
         });
+    });
+
+    socket.on('change snake direction', (data) => {
+        myRoom.changeSnakeDirection(socket.id, data.Direction);
     });
 
     socket.on('disconnect', () => {
@@ -205,7 +247,7 @@ io.on('connection', (socket) => {
         if (myRoom.playersCounter === 1) {
             rooms.remove(myRoom.id);
         } else {
-            socket.broadcast.to(myRoom.id).emit('disconnect some player', {playerId: socket.id});
+            socket.broadcast.to(myRoom.id).emit('disconnect some player', { playerId: socket.id });
             myRoom.remove(socket.id);
         }
     });

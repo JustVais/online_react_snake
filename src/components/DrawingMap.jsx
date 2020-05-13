@@ -7,6 +7,7 @@ const DrawingMap = ({ map }) => {
         switch (map.getCellType(x, y)) {
             case 1:
                 classesArray.push("map__snake");
+                classesArray.push(`map__snake--${map.cellColor(x, y)}`);
                 break;
             case 2:
                 classesArray.push("map__apple");

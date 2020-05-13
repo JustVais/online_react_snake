@@ -19,9 +19,11 @@ class Map {
         return newMap;
     }
 
-    insertSnakeToMap = (snake) => {
+    insertSnakeToMap = (snake, color) => {
         snake.forEach((snakeCell) => {
-            this.mapArray[snakeCell.x][snakeCell.y].type = 1;
+            this.setCellType(snakeCell.x, snakeCell.y, 1);
+
+            if (color) this.setCellColor(snakeCell.x, snakeCell.y, color);
         });
     }
     
@@ -33,11 +35,25 @@ class Map {
 
     setCellType = (x, y, type) => this.mapArray[x][y].type = type;
 
+    setCellColor = (x, y, color) => this.mapArray[x][y].color = color;
+
+    getCellColor = (x, y) => this.mapArray[x][y].color;
+
     updateSnakeOnMap = (newHead, savedSnake) => {
         let lastCell = savedSnake.slice(-1)[0];
 
         this.setCellType(newHead.x, newHead.y, 1);
         this.setCellType(lastCell.x, lastCell.y, 0);
+        this.setCellColor(newHead.x, newHead.y, this.getCellColor(lastCell.x, lastCell.y));
+        this.setCellColor(lastCell.x, lastCell.y, "");
+    }
+
+    cellColor = (x, y) => {
+        if (this.mapArray[x][y].color === "") {
+            return "green";
+        }
+
+        return this.mapArray[x][y].color;
     }
 
     get MapArray() {
