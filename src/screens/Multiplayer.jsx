@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import '../css/multiplayer.css';
-import Map from '../components/Map';
+import DrawingMap from '../components/DrawingMap';
 
 import WaitingPlayer from '../components/WaitingPlayer';
 import { Link } from 'react-router-dom';
 import GameOverPlayer from "../components/GameOverPlayer";
 
+import Map from '../components/Map.js';
+
+const MAP_SIZE = 32;
 let socket;
 
 const Multiplayer = () => {
+    const [map] = useState(new Map(MAP_SIZE));
     const [gameStarted, setGameStarted] = useState(false);
     const [playersList, setPlayersList] = useState({});
     const [localIsReady, setLocalIsReady] = useState(false);
@@ -61,7 +65,9 @@ const Multiplayer = () => {
         <>
             {
                 gameStarted ?
-                    <></>
+                    <div className="container">
+                        <DrawingMap map={map} />
+                    </div>
                     :
                     <div className="container">
                         <div className="wait-menu">

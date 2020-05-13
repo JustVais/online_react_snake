@@ -118,7 +118,7 @@ class Room {
             }
         }
 
-        if (readyPlayersCounter === this.playersCounter) {
+        if (readyPlayersCounter === MAX_PLAYERS_IN_ROOM) {
             this.gameStarted = true;
             io.to(this.id).emit('game start');
         }

@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 
 import '../css/map.css'
 
+import DrawingMap from './DrawingMap';
+
 import useInterval from "./useInterval";
+
+import Map from './Map';
 
 const Direction = {
     Top: { x: 0, y: -1, str: "top" },
@@ -10,62 +14,6 @@ const Direction = {
     Left: { x: -1, y: 0, str: "left" },
     Right: { x: 1, y: 0, str: "right" }
 };
-
-class MapCell {
-    constructor() {
-        this.type = 0;
-        this.snakeDirection = "";
-    }
-}
-
-class Map {
-    constructor(MAP_SIZE) {
-        this.mapSize = MAP_SIZE;
-        this.mapArray = this.getNewMap(MAP_SIZE);
-    }
-
-    getNewMap = (MAP_SIZE) => {
-        let newMap = [];
-
-        for (let y = 0; y < MAP_SIZE; y++) {
-            let newRow = [];
-
-            for (let x = 0; x < MAP_SIZE; x++) newRow.push(new MapCell());
-
-            newMap.push(newRow);
-        }
-        return newMap;
-    }
-
-    insertSnakeToMap = (snake) => {
-        snake.forEach((snakeCell) => {
-            this.mapArray[snakeCell.x][snakeCell.y].type = 1;
-        });
-    }
-    
-    insertAppleToMap = (apple) => {
-        this.setCellType(apple.x, apple.y, 2);
-    }
-
-    getCellType = (x, y) => this.mapArray[x][y].type;
-
-    setCellType = (x, y, type) => this.mapArray[x][y].type = type;
-
-    updateSnakeOnMap = (newHead, savedSnake) => {
-        let lastCell = savedSnake.slice(-1)[0];
-
-        this.setCellType(newHead.x, newHead.y, 1);
-        this.setCellType(lastCell.x, lastCell.y, 0);
-    }
-
-    get MapArray() {
-        return this.mapArray;
-    }
-
-    get Size() {
-        return this.mapSize;
-    }
-}
 
 class Snake {
     constructor(map, size) {
@@ -116,24 +64,6 @@ class Apple {
     }
 }
 
-const checkCell = (map, x, y) => {
-    let classesArray = [];
-
-    switch (map.getCellType(x, y)) {
-        case 1:
-            classesArray.push("map__snake");
-            break;
-        case 2:
-            classesArray.push("map__apple");
-            break;
-        default:
-            classesArray = [];
-            break;
-    }
-
-    return classesArray.join(" ");
-}
-
 const isInTheField = ({ x, y }, MAP_SIZE) => {
     if (x < 0 || x > MAP_SIZE - 1 || y < 0 || y > MAP_SIZE - 1) {
         return false;
@@ -166,7 +96,7 @@ const MapComponent = ({ setIsGameOver, MAP_SIZE }) => {
     const [map] = useState(new Map(MAP_SIZE));
     const [snake] = useState(new Snake(map, 4));
     const [apple] = useState(new Apple(map));
-    const [ignored, forceUpdate] = useState(0);
+    const [, forceUpdate] = useState(0);
     const [currentDirrection, setCurrentDirrection] = useState(Direction.Left);
     
     const keyboardListener = (event) => {
@@ -236,19 +166,7 @@ const MapComponent = ({ setIsGameOver, MAP_SIZE }) => {
     }, 250);
 
     return (
-        <div className="map">
-            {
-                map.MapArray.map((row, y) =>
-                    <div key={y} className="map__row">
-                        {
-                            row.map((cell, x) =>
-                                <div key={x} className={`map__cell ${checkCell(map, x, y)}`}></div>
-                            )
-                        }
-                    </div>
-                )
-            }
-        </div>
+        <DrawingMap map={map} />
     );
 }
 

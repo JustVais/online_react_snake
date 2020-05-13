@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import GameMenu from "../components/GameMenu";
 import { Link } from "react-router-dom";
 
-import Map from '../components/Map';
+import MapLogic from '../components/MapLogic';
 
 import '../css/singleplayer.css'
 
@@ -27,7 +27,7 @@ function Singleplayer() {
             {
                 !isGameOver ?
                     <div className="container">
-                        <Map MAP_SIZE={MAP_SIZE} setIsGameOver={setIsGameOver} />
+                        <MapLogic MAP_SIZE={MAP_SIZE} setIsGameOver={setIsGameOver} />
                     </div>
                     :
                     <GameMenu>

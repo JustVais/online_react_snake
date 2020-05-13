@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import io from 'socket.io-client';
 import '../css/multiplayer.css';
-import Map from '../components/Map';
+import Map from '../components/MapLogic';
 
 import WaitingPlayer from '../components/WaitingPlayer';
 import { Link } from 'react-router-dom';
