@@ -25,7 +25,7 @@ class Room {
         this.status = WAITING_FOR_PLAYERS;
         this.gameStarted = false;
         this.playersList = {};
-        this.playersCount = 0;
+        this.playersCounter = 0;
         this.colors = [
             { occupied: false, color: 'red' },
             { occupied: false, color: 'green' },
@@ -51,7 +51,7 @@ class Room {
     }
 
     add = (player) => {
-        this.playersCount++;
+        this.playersCounter++;
 
         for (let i = 0; i < this.colors.length; i++) {
             if (!this.colors[i].occupied) {
@@ -67,7 +67,7 @@ class Room {
     }
 
     remove = (socketId) => {
-        this.playersCount--;
+        this.playersCounter--;
 
         for (let i = 0; i < this.colors.length; i++) {
             if (this.colors[i].color === this.playersList[socketId].color) {
@@ -97,16 +97,40 @@ class Room {
     }
 
     changePlayerReadyStatus = (socketId, status) => {
-        if (this.gameStarted == true) return;
-
+        
         this.playersList[socketId].isReady = status;
 
-        // startGame();
+        if (this.gameStarted == true) return;
+
+        this.startGame();
     }
 
-    // startGame = () => {
+    startGame = () => {
+        let readyPlayersCounter = 0;
 
-    // }
+        let playersKeys = Object.keys(this.playersList);
+
+        for(let i = 0; i < playersKeys.length; i++) {
+            if (this.playersList[playersKeys[i]].isReady) {
+                readyPlayersCounter++;
+            } else {
+                break;
+            }
+        }
+
+        if (readyPlayersCounter === this.playersCounter) {
+            this.gameStarted = true;
+            io.to(this.id).emit('game start');
+        }
+    }
+
+    game = () => {
+        new Promise((resolve, reject) => {
+            setInterval(() => {
+                
+            }, 1000);
+        });
+    }
 }
 
 class RoomsList {
@@ -120,7 +144,7 @@ class RoomsList {
         for (let i = 0; i < keysOfRooms.length; i++) {
             let currentRoom = rooms.roomsList[keysOfRooms[i]];
 
-            if (currentRoom.status === WAITING_FOR_PLAYERS && currentRoom.playersCount < MAX_PLAYERS_IN_ROOM) {
+            if (currentRoom.status === WAITING_FOR_PLAYERS && currentRoom.playersCounter < MAX_PLAYERS_IN_ROOM) {
                 return currentRoom.id;
             }
         }
@@ -178,7 +202,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         if (!myRoom) return;
 
-        if (myRoom.playersCount === 1) {
+        if (myRoom.playersCounter === 1) {
             rooms.remove(myRoom.id);
         } else {
             socket.broadcast.to(myRoom.id).emit('disconnect some player', {playerId: socket.id});
