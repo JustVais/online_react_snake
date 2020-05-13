@@ -12,10 +12,10 @@ const IN_GAME = "IN_GAME";
 const MAX_PLAYERS_IN_ROOM = 2;
 
 class Player {
-    constructor(socketId) {
+    constructor(socket) {
         this.isReady = false;
         this.color;
-        this.socketId = socketId;
+        this.socket = socket;
     }
 }
 
@@ -60,7 +60,22 @@ class Room {
             }
         }
 
-        this.playersList[player.socketId] = player;
+        player.socket.join(this.id);
+
+        this.playersList[player.socket.id] = player;
+    }
+
+    remove = (socketId) => {
+        this.playersCount--;
+
+        for (let i = 0; i < this.colors.length; i++) {
+            if (this.colors[i].color === this.playersList[socketId].color) {
+                this.colors[i].occupied = false;
+                break;
+            }
+        }
+
+        delete this.playersList[socketId];
     }
 
     getPlayersList = () => {
@@ -73,7 +88,7 @@ class Room {
             newPlayersList[keys[i]] = {
                 isReady: player.isReady,
                 color: player.color,
-                id: player.socketId
+                id: player.socket.id
             };
         }
 
@@ -111,6 +126,10 @@ class RoomsList {
     add = (room) => {
         this.roomsList[room.id] = room;
     }
+
+    remove = (roomId) => {
+        delete this.roomsList[roomId];
+    }
 }
 
 const rooms = new RoomsList();
@@ -119,7 +138,7 @@ io.on('connection', (socket) => {
     let myRoom;
 
     socket.on('connect to room', () => {
-        let player = new Player(socket.id);
+        let player = new Player(socket);
 
         myRoom = rooms.roomsList[rooms.getIdOfFreeRoom()];
 
@@ -127,6 +146,21 @@ io.on('connection', (socket) => {
 
         socket.emit('get all players', { playersList: myRoom.getPlayersList() });
 
-        // socket.broadcast.to(roomId).emit('onAddPlayerToRoom', newPlayer);
+        socket.broadcast.to(myRoom.id).emit('add new player', {newPlayer: {
+            isReady: player.isReady,
+            color: player.color,
+            id: player.socket.id
+        }});
+    });
+
+    socket.on('disconnect', () => {
+        if (!myRoom) return;
+        console.log(myRoom.playersCount);
+        if (myRoom.playersCount === 1) {
+            rooms.remove(myRoom.id);
+        } else {
+            socket.broadcast.to(myRoom.id).emit('disconnect some player', {playerId: socket.id});
+            myRoom.remove(socket.id);
+        }
     });
 });
