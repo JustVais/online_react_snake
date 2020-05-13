@@ -23,6 +23,7 @@ class Room {
     constructor() {
         this.id = this.generateRoomId();
         this.status = WAITING_FOR_PLAYERS;
+        this.gameStarted = false;
         this.playersList = {};
         this.playersCount = 0;
         this.colors = [
@@ -94,6 +95,18 @@ class Room {
 
         return newPlayersList;
     }
+
+    changePlayerReadyStatus = (socketId, status) => {
+        if (this.gameStarted == true) return;
+
+        this.playersList[socketId].isReady = status;
+
+        // startGame();
+    }
+
+    // startGame = () => {
+
+    // }
 }
 
 class RoomsList {
@@ -153,9 +166,18 @@ io.on('connection', (socket) => {
         }});
     });
 
+    socket.on('change my ready status', (data) => {
+        myRoom.changePlayerReadyStatus(socket.id, data.status);
+
+        io.to(myRoom.id).emit('change player status', {
+            playerId: socket.id, 
+            status: data.status
+        });
+    });
+
     socket.on('disconnect', () => {
         if (!myRoom) return;
-        console.log(myRoom.playersCount);
+
         if (myRoom.playersCount === 1) {
             rooms.remove(myRoom.id);
         } else {
